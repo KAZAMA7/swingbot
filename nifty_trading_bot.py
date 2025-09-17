@@ -326,12 +326,15 @@ def main():
 
 
 if __name__ == "__main__":
+    import sys
     try:
         exit_code = main()
-        exit(exit_code)
+        sys.exit(exit_code)
     except KeyboardInterrupt:
         print("\n👋 Goodbye!")
-        exit(0)
+        sys.exit(0)
     except Exception as e:
         print(f"💥 Error: {e}")
-        exit(1)
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

@@ -137,13 +137,13 @@ def get_symbol_list(size="nifty50"):
         List of symbols
     """
     if size.lower() == "nifty50":
-        return NIFTY_50_SYMBOLS
+        return NIFTY_500_SYMBOLS[:50]  # First 50 symbols (large cap)
     elif size.lower() == "nifty100":
-        return NIFTY_100_SYMBOLS
+        return NIFTY_500_SYMBOLS[:100]  # First 100 symbols
     elif size.lower() == "nifty500":
-        return NIFTY_500_SYMBOLS
+        return NIFTY_500_SYMBOLS  # All 500 symbols
     else:
-        return NIFTY_50_SYMBOLS
+        return NIFTY_500_SYMBOLS[:50]  # Default to NIFTY 50
 
 def validate_symbols(symbols, max_test=5):
     """

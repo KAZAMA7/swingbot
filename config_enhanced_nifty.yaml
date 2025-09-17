@@ -1,0 +1,129 @@
+# Enhanced NIFTY Trading Bot Configuration
+# Advanced configuration for multi-indicator analysis
+
+# Data source settings
+data_sources:
+  yahoo_finance:
+    enabled: true
+    rate_limit: 1  # Slower rate for more reliable data fetching
+    timeout: 30
+
+# Enhanced indicator settings
+indicators:
+  rsi:
+    periods: [14, 21, 50]  # Multiple RSI periods
+    oversold_threshold: 30
+    overbought_threshold: 70
+  
+  ema:
+    periods: [9, 21, 50, 200]  # Multiple EMA periods
+    
+  bollinger_bands:
+    period: 20
+    std_dev: 2
+    
+  macd:
+    fast: 12
+    slow: 26
+    signal: 9
+
+# Enhanced trading strategy parameters
+strategy:
+  enhanced_multi_indicator:
+    min_signal_score: 4  # Minimum score for signal generation
+    strong_signal_score: 6  # Score for strong signals
+    
+    # RSI scoring weights
+    rsi_weights:
+      rsi_14: 3  # Primary RSI weight
+      rsi_21: 2  # Secondary RSI weight
+      rsi_50: 1  # Long-term RSI weight
+    
+    # EMA trend scoring
+    ema_trend_weight: 3
+    long_term_trend_weight: 2
+    
+    # Bollinger Bands weight
+    bb_weight: 2
+    
+    # MACD momentum weight
+    macd_weight: 2
+
+# Symbol selection
+symbols:
+  default_size: "nifty500"  # Default to full NIFTY 500
+  test_size: 20  # Number of symbols for testing
+  
+  # Custom symbol lists (optional)
+  custom_lists:
+    banking:
+      - "HDFCBANK.NS"
+      - "ICICIBANK.NS"
+      - "SBIN.NS"
+      - "KOTAKBANK.NS"
+      - "AXISBANK.NS"
+    
+    it:
+      - "TCS.NS"
+      - "INFY.NS"
+      - "WIPRO.NS"
+      - "HCLTECH.NS"
+      - "TECHM.NS"
+
+# Scheduling configuration
+scheduling:
+  update_interval: 900  # 15 minutes (for large analysis)
+  market_hours_only: true
+  
+  # Indian market hours
+  market_hours:
+    open: "09:15"
+    close: "15:30"
+    timezone: "Asia/Kolkata"
+
+# Output configuration
+output:
+  csv_file: "enhanced_nifty_signals.csv"
+  database: "enhanced_nifty_trading_data.db"
+  charts_enabled: false
+  output_dir: "enhanced_output"
+  
+  # Enhanced output options
+  include_all_indicators: true
+  sort_by_signal_strength: true
+  export_trend_analysis: true
+
+# Logging configuration
+logging:
+  level: "INFO"
+  file: "enhanced_nifty_trading_bot.log"
+  max_size_mb: 100  # Larger log files for detailed analysis
+  backup_count: 15
+  
+  # Enhanced logging options
+  log_signal_details: true
+  log_indicator_values: true
+
+# Performance settings
+performance:
+  max_concurrent_requests: 5  # Conservative for stability
+  request_delay: 0.5  # Delay between requests
+  retry_attempts: 3
+  timeout_per_symbol: 60  # Increased timeout for complex analysis
+
+# Alert settings (for future implementation)
+alerts:
+  enabled: false
+  strong_signals_only: true
+  email_notifications: false
+  webhook_url: ""
+
+# Risk management
+risk_management:
+  max_position_size: 0.05  # 5% of portfolio per position
+  stop_loss_percentage: 0.08  # 8% stop loss
+  take_profit_percentage: 0.15  # 15% take profit
+  
+  # Signal filtering
+  min_data_years: 1  # Minimum data history required
+  min_volume_threshold: 100000  # Minimum daily volume
