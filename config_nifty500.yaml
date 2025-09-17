@@ -4,6 +4,14 @@ data_sources:
     enabled: true
     rate_limit: 3  # Slower rate for large number of symbols
 
+# Data fetching configuration
+data_fetching:
+  max_data_period: "max"  # "max" for inception, or specific period like "10y"
+  fallback_periods: ["max", "10y", "5y", "2y", "1y", "6mo"]
+  min_data_threshold: 200  # Minimum days of data required
+  timeout_per_symbol: 60   # Timeout for data fetching
+  show_data_summary: true  # Show data range information
+
 # NIFTY 500 stocks (partial list - top performing stocks)
 watchlist:
   # Large Cap

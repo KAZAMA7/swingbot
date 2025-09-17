@@ -69,31 +69,51 @@ class DataManager:
             self.logger.error(f"Failed to initialize data for {symbol}: {e}")
             raise DataFetchError(f"Data initialization failed for {symbol}: {e}")
     
-    def _download_complete_history(self, symbol: str) -> pd.DataFrame:
+    def _download_complete_history(self, symbol: str, config: dict = None) -> pd.DataFrame:
         """
-        Download complete historical data for a symbol.
+        Download complete historical data for a symbol with enhanced configuration support.
         
         Yahoo Finance provides:
-        - Daily data: Up to 10+ years
+        - Daily data: From inception with "max" period
         - Intraday data: Limited to recent periods
         
         Args:
             symbol: Stock symbol
+            config: Configuration dictionary with data fetching parameters
             
         Returns:
             DataFrame with complete historical data
         """
         try:
-            # Try different periods to get maximum data
-            periods_to_try = ["max", "10y", "5y", "2y", "1y"]
+            # Get configuration parameters
+            if config and 'data_fetching' in config:
+                data_config = config['data_fetching']
+                periods_to_try = data_config.get('fallback_periods', ["max", "10y", "5y", "2y", "1y", "6mo"])
+                min_threshold = data_config.get('min_data_threshold', 200)
+            else:
+                periods_to_try = ["max", "10y", "5y", "2y", "1y", "6mo"]
+                min_threshold = 200
             
+            period_used = None
             for period in periods_to_try:
                 try:
                     self.logger.debug(f"Trying to fetch {period} data for {symbol}")
                     hist_data = self.data_fetcher.fetch_historical_data(symbol, period)
                     
-                    if not hist_data.empty:
-                        self.logger.info(f"Successfully fetched {len(hist_data)} days of data for {symbol} (period: {period})")
+                    if not hist_data.empty and len(hist_data) >= min_threshold:
+                        period_used = period
+                        
+                        # Enhanced data summary
+                        start_date = hist_data.index.min().strftime('%Y-%m-%d')
+                        end_date = hist_data.index.max().strftime('%Y-%m-%d')
+                        years_span = (hist_data.index.max() - hist_data.index.min()).days / 365.25
+                        
+                        self.logger.info(f"Successfully fetched {len(hist_data)} days of data for {symbol} "
+                                       f"from {start_date} to {end_date} ({years_span:.1f} years) [Period: {period}]")
+                        
+                        # Warn if limited data
+                        if years_span < 1.0:
+                            self.logger.warning(f"Limited historical data for {symbol}: {years_span:.1f} years")
                         
                         # Convert to OHLCV objects and store
                         ohlcv_list = self._dataframe_to_ohlcv_list(symbol, hist_data)
@@ -103,12 +123,14 @@ class DataManager:
                             self.logger.info(f"Stored {len(ohlcv_list)} records for {symbol}")
                         
                         return hist_data
+                    else:
+                        self.logger.debug(f"Insufficient data with {period} for {symbol}: {len(hist_data) if not hist_data.empty else 0} days")
                         
                 except Exception as e:
                     self.logger.warning(f"Failed to fetch {period} data for {symbol}: {e}")
                     continue
             
-            raise DataFetchError(f"Could not fetch any historical data for {symbol}")
+            raise DataFetchError(f"Could not fetch sufficient historical data for {symbol} (need {min_threshold}+ days)")
             
         except Exception as e:
             raise DataFetchError(f"Complete history download failed for {symbol}: {e}")
