@@ -1,0 +1,17 @@
+indicators:
+  bollinger_bands:
+    period: 20
+    std_dev: 2
+  ema:
+    period: 20
+  rsi:
+    period: 14
+strategy:
+  rsi_overbought: 70
+  rsi_oversold: 30
+watchlist:
+- AAPL
+- GOOGL
+- MSFT
+- TSLA
+- NVDA

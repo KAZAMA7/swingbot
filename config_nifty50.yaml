@@ -1,0 +1,88 @@
+# NIFTY 50 Configuration
+data_sources:
+  yahoo_finance:
+    enabled: true
+    rate_limit: 5  # requests per second
+
+# NIFTY 50 stocks
+watchlist:
+  - "RELIANCE.NS"
+  - "TCS.NS"
+  - "HDFCBANK.NS"
+  - "INFY.NS"
+  - "HINDUNILVR.NS"
+  - "ICICIBANK.NS"
+  - "KOTAKBANK.NS"
+  - "SBIN.NS"
+  - "BHARTIARTL.NS"
+  - "ITC.NS"
+  - "ASIANPAINT.NS"
+  - "LT.NS"
+  - "AXISBANK.NS"
+  - "MARUTI.NS"
+  - "SUNPHARMA.NS"
+  - "TITAN.NS"
+  - "ULTRACEMCO.NS"
+  - "WIPRO.NS"
+  - "NESTLEIND.NS"
+  - "POWERGRID.NS"
+  - "NTPC.NS"
+  - "HCLTECH.NS"
+  - "BAJFINANCE.NS"
+  - "M&M.NS"
+  - "TECHM.NS"
+  - "TATAMOTORS.NS"
+  - "COALINDIA.NS"
+  - "TATASTEEL.NS"
+  - "ADANIPORTS.NS"
+  - "ONGC.NS"
+  - "INDUSINDBK.NS"
+  - "JSWSTEEL.NS"
+  - "GRASIM.NS"
+  - "HINDALCO.NS"
+  - "CIPLA.NS"
+  - "DRREDDY.NS"
+  - "EICHERMOT.NS"
+  - "UPL.NS"
+  - "APOLLOHOSP.NS"
+  - "BAJAJFINSV.NS"
+  - "DIVISLAB.NS"
+  - "HDFCLIFE.NS"
+  - "SBILIFE.NS"
+  - "BRITANNIA.NS"
+  - "SHREECEM.NS"
+  - "HEROMOTOCO.NS"
+  - "BAJAJ-AUTO.NS"
+  - "GODREJCP.NS"
+  - "PIDILITIND.NS"
+  - "DABUR.NS"
+
+indicators:
+  rsi:
+    period: 14
+  bollinger_bands:
+    period: 20
+    std_dev: 2
+  ema:
+    period: 20
+
+strategy:
+  swing_trading:
+    rsi_oversold: 30
+    rsi_overbought: 70
+
+scheduling:
+  update_interval: 300  # 5 minutes
+  market_hours_only: true
+
+output:
+  csv_file: "nifty50_signals.csv"
+  database: "nifty50_trading_data.db"
+  charts_enabled: false
+  output_dir: "output"
+
+logging:
+  level: "INFO"
+  file: "nifty50_trading_bot.log"
+  max_size_mb: 10
+  backup_count: 5
