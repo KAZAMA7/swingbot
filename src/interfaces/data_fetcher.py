@@ -29,13 +29,14 @@ class DataFetcherInterface(ABC):
         pass
     
     @abstractmethod
-    def fetch_historical_data(self, symbol: str, period: str) -> DataFrame:
+    def fetch_historical_data(self, symbol: str, period: str, interval: str | None = None) -> DataFrame:
         """
         Fetch historical market data for a symbol.
         
         Args:
             symbol: Stock symbol to fetch
             period: Time period (e.g., "1y", "6mo", "200d")
+            interval: Optional intraday interval (e.g., '60m' or '1h' or '30m'). If None, daily data is returned.
             
         Returns:
             DataFrame with OHLCV data indexed by date

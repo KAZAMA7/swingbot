@@ -11,8 +11,8 @@ import pandas as pd
 
 from .yahoo_finance_fetcher import YahooFinanceFetcher
 from .database import DatabaseManager
-from ..models.data_models import OHLCV
-from ..models.exceptions import DataFetchError, DatabaseError
+from models.data_models import OHLCV
+from models.exceptions import DataFetchError, DatabaseError
 
 
 class DataManager:
@@ -33,6 +33,8 @@ class DataManager:
         # Initialize data fetcher
         rate_limit = self.config.get('data_sources', {}).get('yahoo_finance', {}).get('rate_limit', 5)
         self.data_fetcher = YahooFinanceFetcher(rate_limit)
+        # Optional intraday interval (e.g., '60m' for hourly). If None, daily data is used.
+        self.interval = self.config.get('data_fetching', {}).get('interval', None)
         
         self.logger.info("Data manager initialized")
     
@@ -98,7 +100,7 @@ class DataManager:
             for period in periods_to_try:
                 try:
                     self.logger.debug(f"Trying to fetch {period} data for {symbol}")
-                    hist_data = self.data_fetcher.fetch_historical_data(symbol, period)
+                    hist_data = self.data_fetcher.fetch_historical_data(symbol, period, interval=self.interval)
                     
                     if not hist_data.empty and len(hist_data) >= min_threshold:
                         period_used = period
@@ -149,9 +151,21 @@ class DataManager:
         try:
             # Get the latest date in existing data
             latest_date = existing_data.index.max()
-            days_since_update = (datetime.now() - latest_date).days
-            
-            self.logger.debug(f"Latest data for {symbol}: {latest_date}, {days_since_update} days ago")
+
+            # Normalize latest_date and now to UTC-aware pandas Timestamps to avoid
+            # errors when subtracting tz-aware and tz-naive datetimes.
+            latest_ts = pd.Timestamp(latest_date)
+
+            # If latest_ts is naive, localize it to UTC. If it's tz-aware, convert to UTC.
+            if latest_ts.tz is None:
+                latest_ts_utc = latest_ts.tz_localize('UTC')
+            else:
+                latest_ts_utc = latest_ts.tz_convert('UTC')
+
+            now_utc = pd.Timestamp.now(tz='UTC')
+            days_since_update = int((now_utc - latest_ts_utc).days)
+
+            self.logger.debug(f"Latest data for {symbol}: {latest_ts_utc}, {days_since_update} days ago")
             
             if days_since_update <= 1:
                 self.logger.info(f"Data for {symbol} is up to date")
@@ -162,7 +176,7 @@ class DataManager:
             fetch_period = f"{min(days_since_update + 5, 30)}d"
             
             try:
-                new_data = self.data_fetcher.fetch_historical_data(symbol, fetch_period)
+                new_data = self.data_fetcher.fetch_historical_data(symbol, fetch_period, interval=self.interval)
                 
                 if new_data.empty:
                     self.logger.warning(f"No new data available for {symbol}")

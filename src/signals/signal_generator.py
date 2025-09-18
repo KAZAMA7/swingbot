@@ -11,9 +11,9 @@ from pathlib import Path
 from typing import Dict, List, Any
 from datetime import datetime
 
-from ..strategies.swing_trading_strategy import SwingTradingStrategy
-from ..models.data_models import Signal, SignalType
-from ..models.exceptions import StrategyError
+from strategies.swing_trading_strategy import SwingTradingStrategy
+from models.data_models import Signal, SignalType
+from models.exceptions import StrategyError
 
 
 class SignalGenerator:

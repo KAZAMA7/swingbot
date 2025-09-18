@@ -9,8 +9,8 @@ import numpy as np
 import logging
 from typing import Dict
 
-from ..interfaces.indicator import IndicatorInterface
-from ..models.exceptions import IndicatorError
+from interfaces.indicator import IndicatorInterface
+from models.exceptions import IndicatorError
 
 
 class BollingerBandsCalculator(IndicatorInterface):

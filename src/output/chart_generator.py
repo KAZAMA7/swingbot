@@ -13,8 +13,8 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 from datetime import datetime
 
-from ..models.data_models import Signal, SignalType
-from ..models.exceptions import TradingBotError
+from models.data_models import Signal, SignalType
+from models.exceptions import TradingBotError
 
 
 class ChartGenerator:

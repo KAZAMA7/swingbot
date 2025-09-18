@@ -11,9 +11,9 @@ import time
 from typing import Dict, List
 from datetime import datetime, timedelta
 
-from ..interfaces.data_fetcher import DataFetcherInterface
-from ..models.data_models import OHLCV
-from ..models.exceptions import DataFetchError
+from interfaces.data_fetcher import DataFetcherInterface
+from models.data_models import OHLCV
+from models.exceptions import DataFetchError
 
 
 class YahooFinanceFetcher(DataFetcherInterface):
@@ -102,7 +102,7 @@ class YahooFinanceFetcher(DataFetcherInterface):
         
         return result
     
-    def fetch_historical_data(self, symbol: str, period: str = "max", fallback_periods: List[str] = None) -> pd.DataFrame:
+    def fetch_historical_data(self, symbol: str, period: str = "max", fallback_periods: List[str] = None, interval: str | None = None) -> pd.DataFrame:
         """
         Fetch historical market data for a symbol with fallback periods.
         
@@ -129,8 +129,12 @@ class YahooFinanceFetcher(DataFetcherInterface):
                 self._rate_limit_delay()
                 
                 ticker = yf.Ticker(symbol)
-                self.logger.debug(f"Attempting to fetch {attempt_period} data for {symbol}")
-                hist = ticker.history(period=attempt_period)
+                self.logger.debug(f"Attempting to fetch {attempt_period} data for {symbol} (interval={interval})")
+                # If an interval is provided, request intraday data where supported
+                if interval:
+                    hist = ticker.history(period=attempt_period, interval=interval)
+                else:
+                    hist = ticker.history(period=attempt_period)
                 
                 if not hist.empty and len(hist) >= 50:  # Minimum threshold for analysis
                     # Log data range information
@@ -178,6 +182,7 @@ class YahooFinanceFetcher(DataFetcherInterface):
                 return False
             
             # Try to get some recent data
+            # Use a short intraday period to validate both daily and intraday symbols
             hist = ticker.history(period="5d")
             return not hist.empty
             
@@ -223,7 +228,7 @@ class YahooFinanceFetcher(DataFetcherInterface):
             self.logger.error(f"Failed to get symbol info for {symbol}: {e}")
             return {'symbol': symbol, 'name': 'Unknown'}
     
-    def fetch_ohlcv_list(self, symbol: str, period: str = "max") -> List[OHLCV]:
+    def fetch_ohlcv_list(self, symbol: str, period: str = "max", interval: str | None = None) -> List[OHLCV]:
         """
         Fetch historical data as list of OHLCV objects.
         
@@ -235,7 +240,7 @@ class YahooFinanceFetcher(DataFetcherInterface):
             List of OHLCV objects
         """
         try:
-            hist_df = self.fetch_historical_data(symbol, period)
+            hist_df = self.fetch_historical_data(symbol, period, interval=interval)
             
             ohlcv_list = []
             for timestamp, row in hist_df.iterrows():

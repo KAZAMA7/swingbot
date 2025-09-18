@@ -11,9 +11,13 @@ data_sources:
 # Data fetching configuration
 data_fetching:
   max_data_period: "max"  # "max" for inception, or specific period like "10y"
-  fallback_periods: ["max", "10y", "5y", "2y", "1y", "6mo"]
-  min_data_threshold: 200  # Minimum days of data required
-  timeout_per_symbol: 60   # Timeout for data fetching
+  # Intraday support: set interval to '60m' for hourly bars (default null = daily)
+  interval: 60m
+  # For intraday use shorter fallback periods (example shown commented):
+  fallback_periods: ["max", "10y", "5y", "2y", "1y", "6mo", "3mo", "1mo"]
+  # If using intraday, reduce min threshold because long history isn't available
+  min_data_threshold: 200  # Minimum records required (adjust for intraday)
+  timeout_per_symbol: 600000   # Timeout for data fetching
   show_data_summary: true  # Show data range information
 
 # Enhanced indicator settings
@@ -39,7 +43,7 @@ indicators:
 strategy:
   enhanced_multi_indicator:
     min_signal_score: 4  # Minimum score for signal generation
-    strong_signal_score: 6  # Score for strong signals
+    strong_signal_score: 7  # Score for strong signals
     
     # RSI scoring weights
     rsi_weights:
@@ -91,8 +95,8 @@ scheduling:
 
 # Output configuration
 output:
-  csv_file: "enhanced_nifty_signals.csv"
-  database: "enhanced_nifty_trading_data.db"
+  csv_file: "output/enhanced_nifty_signals.csv"
+  database: "DBs/enhanced_nifty_trading_data.db"
   charts_enabled: false
   output_dir: "enhanced_output"
   

@@ -7,9 +7,13 @@ data_sources:
 # Data fetching configuration
 data_fetching:
   max_data_period: "max"  # "max" for inception, or specific period like "10y"
-  fallback_periods: ["max", "10y", "5y", "2y", "1y", "6mo"]
-  min_data_threshold: 200  # Minimum days of data required
-  timeout_per_symbol: 60   # Timeout for data fetching
+  # Intraday support: set interval to '60m' for hourly bars (default null = daily)
+  interval: 60m
+  # For intraday use shorter fallback periods (example shown commented):
+  fallback_periods: ["max", "10y", "5y", "2y", "1y", "6mo", "3mo", "1mo"]
+  # If using intraday, reduce min threshold because long history isn't available
+  min_data_threshold: 200  # Minimum records required (adjust for intraday)
+  timeout_per_symbol: 600000   # Timeout for data fetching
   show_data_summary: true  # Show data range information
 
 # NIFTY 50 stocks
@@ -84,9 +88,9 @@ scheduling:
   market_hours_only: true
 
 output:
-  csv_file: "nifty50_signals.csv"
-  database: "nifty50_trading_data.db"
-  charts_enabled: false
+  csv_file: "output/nifty50_signals.csv"
+  database: "DBs/nifty50_trading_data.db"
+  charts_enabled: true
   output_dir: "output"
 
 logging:

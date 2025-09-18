@@ -11,7 +11,7 @@ from typing import Dict, List, Any
 from .rsi_calculator import RSICalculator
 from .bollinger_bands_calculator import BollingerBandsCalculator
 from .ema_calculator import EMACalculator
-from ..models.exceptions import IndicatorError
+from models.exceptions import IndicatorError
 
 
 class AnalysisEngine:

@@ -12,7 +12,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 
-from ..models.exceptions import TradingBotError
+from models.exceptions import TradingBotError
 
 
 class TradingScheduler:

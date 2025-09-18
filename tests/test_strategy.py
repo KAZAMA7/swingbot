@@ -39,9 +39,9 @@ class TestSwingTradingStrategy(unittest.TestCase):
                 'lower_band': [90.0] * 50,
                 'middle_band': [100.0] * 50
             }, index=self.test_data.index),
-            'ema': pd.Series([95.0] * 50, index=self.test_data.index)  # Below current price
+            'ema': pd.Series([85.0] * 50, index=self.test_data.index)  # EMA below current price
         }
-        
+
         # Set current price below BB lower band but above EMA
         self.test_data.loc[self.test_data.index[-1], 'Close'] = 89.0
         

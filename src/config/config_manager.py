@@ -9,7 +9,7 @@ import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-from ..models.exceptions import ConfigurationError
+from models.exceptions import ConfigurationError
 
 
 class ConfigManager:
