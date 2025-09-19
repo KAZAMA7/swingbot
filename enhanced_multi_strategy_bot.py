@@ -21,6 +21,7 @@ from src.strategies.supertrend_strategy import SuperTrendStrategy
 from src.strategies.multi_strategy_scorer import MultiStrategyScorer
 from src.notifications.email_service import EmailNotificationService
 from src.visualization.chart_generator import ChartGenerator
+from src.data.database import DatabaseManager
 
 
 def setup_logging(verbose=False, output_config=None):
@@ -208,7 +209,7 @@ def is_market_hours():
 
 
 def analyze_symbol_multi_strategy(symbol, logger, config=None, strategies=None, 
-                                email_service=None, scorer=None, chart_generator=None):
+                                email_service=None, scorer=None, chart_generator=None, db_manager=None):
     """Analyze a single NIFTY symbol with multiple strategies."""
     try:
         logger.info(f"Analyzing {symbol}...")
@@ -328,6 +329,59 @@ def analyze_symbol_multi_strategy(symbol, logger, config=None, strategies=None,
                     logger.info(f"Chart generated for {symbol}: {chart_path}")
             except Exception as e:
                 logger.error(f"Chart generation failed for {symbol}: {e}")
+        
+        # Store enhanced signal in database if configured
+        if db_manager and composite_signal:
+            try:
+                # Store enhanced signal
+                signal_data = {
+                    'symbol': symbol,
+                    'timestamp': datetime.now(),
+                    'composite_signal': composite_signal.signal_type.value,
+                    'composite_score': composite_signal.composite_score,
+                    'composite_confidence': composite_signal.confidence,
+                    'legacy_signal': legacy_signal,
+                    'legacy_score': legacy_score,
+                    'strategy_signals': json.dumps({
+                        signal.strategy_name: {
+                            'signal': signal.signal_type.value,
+                            'confidence': signal.confidence
+                        } for signal in strategy_signals
+                    }),
+                    'price': current_price,
+                    'price_change': price_change,
+                    'price_change_percent': price_change_percent,
+                    'data_quality': f"{len(data)} records"
+                }
+                
+                # Store in enhanced_signals table
+                with db_manager.get_connection() as conn:
+                    conn.execute("""
+                        INSERT INTO enhanced_signals 
+                        (symbol, timestamp, composite_signal, composite_score, composite_confidence,
+                         legacy_signal, legacy_score, strategy_signals, price, price_change, 
+                         price_change_percent, data_quality)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        signal_data['symbol'],
+                        signal_data['timestamp'].isoformat(),
+                        signal_data['composite_signal'],
+                        signal_data['composite_score'],
+                        signal_data['composite_confidence'],
+                        signal_data['legacy_signal'],
+                        signal_data['legacy_score'],
+                        signal_data['strategy_signals'],
+                        signal_data['price'],
+                        signal_data['price_change'],
+                        signal_data['price_change_percent'],
+                        signal_data['data_quality']
+                    ))
+                    conn.commit()
+                
+                logger.debug(f"Enhanced signal stored in database for {symbol}")
+                
+            except Exception as e:
+                logger.error(f"Database storage failed for {symbol}: {e}")
         
         latest = data.iloc[-1]
         current_price = latest['Close']
