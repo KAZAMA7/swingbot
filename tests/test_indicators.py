@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from src.analysis.rsi_calculator import RSICalculator
 from src.analysis.bollinger_bands_calculator import BollingerBandsCalculator
 from src.analysis.ema_calculator import EMACalculator
+from src.analysis.supertrend_calculator import SuperTrendCalculator
 from src.models.exceptions import IndicatorError
 
 
@@ -41,6 +42,7 @@ class TestIndicators(unittest.TestCase):
         self.rsi_calc = RSICalculator()
         self.bb_calc = BollingerBandsCalculator()
         self.ema_calc = EMACalculator()
+        self.supertrend_calc = SuperTrendCalculator()
     
     def test_rsi_calculation(self):
         """Test RSI calculation."""
@@ -100,6 +102,55 @@ class TestIndicators(unittest.TestCase):
         for period in periods:
             self.assertIn(f'ema_{period}', emas.columns)
     
+    def test_ema_crossover_signals(self):
+        """Test EMA crossover signal calculation."""
+        result = self.ema_calc.calculate_ema_crossover_signals(
+            self.test_data, short_period=20, long_period=50, approach_threshold=0.02
+        )
+        
+        # Should have all required keys
+        required_keys = ['short_ema', 'long_ema', 'ema_convergence', 'signals', 
+                        'crossover_type', 'signal_strength', 'short_period', 'long_period']
+        for key in required_keys:
+            self.assertIn(key, result)
+        
+        # Crossover types should be valid
+        crossover_values = result['crossover_type'].unique()
+        valid_types = ['none', 'bullish', 'bearish', 'approaching_bullish', 'approaching_bearish']
+        for crossover_type in crossover_values:
+            self.assertIn(crossover_type, valid_types)
+        
+        # Signal strength should be between 0 and 1
+        strength_values = result['signal_strength']
+        self.assertTrue((strength_values >= 0.0).all())
+        self.assertTrue((strength_values <= 1.0).all())
+    
+    def test_ema_crossover_invalid_periods(self):
+        """Test EMA crossover with invalid periods."""
+        with self.assertRaises(IndicatorError):
+            self.ema_calc.calculate_ema_crossover_signals(
+                self.test_data, short_period=50, long_period=20  # Invalid: short >= long
+            )
+    
+    def test_ema_crossover_points_detection(self):
+        """Test EMA crossover points detection."""
+        crossover_data = self.ema_calc.calculate_ema_crossover_signals(
+            self.test_data, short_period=10, long_period=30
+        )
+        
+        crossover_points = self.ema_calc.detect_ema_crossover_points(crossover_data)
+        
+        # Should be a DataFrame
+        self.assertIsInstance(crossover_points, pd.DataFrame)
+        
+        # If there are crossover points, they should have the right columns
+        if len(crossover_points) > 0:
+            expected_cols = ['timestamp', 'crossover_type', 'signal', 'signal_strength',
+                           'short_ema_value', 'long_ema_value', 'ema_convergence_pct',
+                           'short_period', 'long_period']
+            for col in expected_cols:
+                self.assertIn(col, crossover_points.columns)
+    
     def test_parameter_validation(self):
         """Test parameter validation for all indicators."""
         # Valid parameters
@@ -123,6 +174,86 @@ class TestIndicators(unittest.TestCase):
         
         ema_defaults = self.ema_calc.get_default_params()
         self.assertEqual(ema_defaults['period'], 20)
+        
+        supertrend_defaults = self.supertrend_calc.get_default_params()
+        self.assertEqual(supertrend_defaults['atr_period'], 10)
+        self.assertEqual(supertrend_defaults['multiplier'], 3.0)
+    
+    def test_supertrend_calculation(self):
+        """Test SuperTrend calculation."""
+        params = {'atr_period': 10, 'multiplier': 3.0}
+        supertrend = self.supertrend_calc.calculate(self.test_data, params)
+        
+        # SuperTrend should have values for most data points
+        self.assertGreater(len(supertrend.dropna()), 80)
+        
+        # SuperTrend should be positive (since our prices are positive)
+        self.assertTrue((supertrend.dropna() > 0).all())
+    
+    def test_supertrend_with_signals(self):
+        """Test SuperTrend calculation with signals."""
+        params = {'atr_period': 10, 'multiplier': 3.0}
+        result = self.supertrend_calc.calculate_with_signals(self.test_data, params)
+        
+        # Should have all required keys
+        required_keys = ['supertrend', 'trend_direction', 'signals', 'atr']
+        for key in required_keys:
+            self.assertIn(key, result)
+        
+        # Trend direction should be 'bullish' or 'bearish'
+        trend_values = result['trend_direction'].dropna().unique()
+        for trend in trend_values:
+            self.assertIn(trend, ['bullish', 'bearish'])
+        
+        # Signals should be -1, 0, or 1
+        signal_values = result['signals'].unique()
+        for signal in signal_values:
+            self.assertIn(signal, [-1, 0, 1])
+    
+    def test_supertrend_insufficient_data(self):
+        """Test SuperTrend with insufficient data."""
+        small_data = self.test_data.head(5)
+        params = {'atr_period': 10, 'multiplier': 3.0}
+        
+        with self.assertRaises(IndicatorError):
+            self.supertrend_calc.calculate(small_data, params)
+    
+    def test_supertrend_parameter_validation(self):
+        """Test SuperTrend parameter validation."""
+        # Valid parameters
+        self.assertTrue(self.supertrend_calc.validate_params({'atr_period': 10, 'multiplier': 3.0}))
+        
+        # Invalid parameters
+        self.assertFalse(self.supertrend_calc.validate_params({'atr_period': 0, 'multiplier': 3.0}))
+        self.assertFalse(self.supertrend_calc.validate_params({'atr_period': 10, 'multiplier': 0}))
+        self.assertFalse(self.supertrend_calc.validate_params({'atr_period': 10, 'multiplier': -1}))
+    
+    def test_supertrend_trend_changes(self):
+        """Test SuperTrend trend change detection."""
+        params = {'atr_period': 10, 'multiplier': 3.0}
+        supertrend_data = self.supertrend_calc.calculate_with_signals(self.test_data, params)
+        
+        trend_changes = self.supertrend_calc.detect_trend_changes(supertrend_data)
+        
+        # Should be a DataFrame
+        self.assertIsInstance(trend_changes, pd.DataFrame)
+        
+        # If there are trend changes, they should have the right columns
+        if len(trend_changes) > 0:
+            expected_cols = ['timestamp', 'signal_type', 'trend_direction', 'supertrend_value', 'signal_strength']
+            for col in expected_cols:
+                self.assertIn(col, trend_changes.columns)
+    
+    def test_supertrend_trend_strength(self):
+        """Test SuperTrend trend strength calculation."""
+        params = {'atr_period': 10, 'multiplier': 3.0}
+        supertrend_data = self.supertrend_calc.calculate_with_signals(self.test_data, params)
+        
+        strength = self.supertrend_calc.get_current_trend_strength(self.test_data, supertrend_data)
+        
+        # Strength should be between 0 and 1
+        self.assertGreaterEqual(strength, 0.0)
+        self.assertLessEqual(strength, 1.0)
 
 
 if __name__ == '__main__':
