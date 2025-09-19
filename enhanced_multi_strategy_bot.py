@@ -20,6 +20,7 @@ from src.strategies.ema_crossover_strategy import EMACrossoverStrategy
 from src.strategies.supertrend_strategy import SuperTrendStrategy
 from src.strategies.multi_strategy_scorer import MultiStrategyScorer
 from src.notifications.email_service import EmailNotificationService
+from src.visualization.chart_generator import ChartGenerator
 
 
 def setup_logging(verbose=False, output_config=None):
@@ -207,7 +208,7 @@ def is_market_hours():
 
 
 def analyze_symbol_multi_strategy(symbol, logger, config=None, strategies=None, 
-                                email_service=None, scorer=None):
+                                email_service=None, scorer=None, chart_generator=None):
     """Analyze a single NIFTY symbol with multiple strategies."""
     try:
         logger.info(f"Analyzing {symbol}...")
@@ -306,6 +307,28 @@ def analyze_symbol_multi_strategy(symbol, logger, config=None, strategies=None,
             except Exception as e:
                 logger.error(f"Email notification failed for {symbol}: {e}")
         
+        # Generate chart if configured and signal is strong enough
+        chart_path = None
+        if (chart_generator and composite_signal and 
+            abs(composite_signal.composite_score) >= 30.0):
+            try:
+                chart_path = chart_generator.generate_comprehensive_chart(
+                    symbol, data, {
+                        'composite_signal': composite_signal.signal_type.value,
+                        'composite_score': composite_signal.composite_score,
+                        'composite_confidence': composite_signal.confidence,
+                        'legacy_signal': legacy_signal,
+                        'legacy_score': legacy_score
+                    }, {signal.strategy_name: {
+                        'signal': signal.signal_type.value,
+                        'confidence': signal.confidence
+                    } for signal in strategy_signals}
+                )
+                if chart_path:
+                    logger.info(f"Chart generated for {symbol}: {chart_path}")
+            except Exception as e:
+                logger.error(f"Chart generation failed for {symbol}: {e}")
+        
         latest = data.iloc[-1]
         current_price = latest['Close']
         
@@ -357,6 +380,7 @@ def analyze_symbol_multi_strategy(symbol, logger, config=None, strategies=None,
             'data_years': years_span,
             'data_records': len(data),
             'data_period_used': period_used,
+            'chart_path': chart_path,
         }
         
         # Enhanced logging with multiple strategies
@@ -456,6 +480,12 @@ def get_default_enhanced_config():
             'signals_directory': 'signals',
             'logs_directory': 'logs',
             'charts_directory': 'charts'
+        },
+        'charts': {
+            'enabled': True,
+            'generate_for_signals': True,
+            'min_score_threshold': 30.0,
+            'save_all_symbols': False
         }
     }
 
@@ -609,6 +639,17 @@ def main():
     else:
         print("Email notifications: DISABLED")
     
+    # Initialize chart generator
+    chart_generator = None
+    chart_config = config.get('charts', {})
+    if chart_config.get('enabled', True):
+        output_config = config.get('output', {})
+        charts_dir = Path(output_config.get('base_directory', 'output')) / output_config.get('charts_directory', 'charts')
+        chart_generator = ChartGenerator(str(charts_dir))
+        print("Chart generation: ENABLED")
+    else:
+        print("Chart generation: DISABLED")
+    
     # Get symbol list
     symbols = get_symbol_list(args.size)
     
@@ -644,7 +685,7 @@ def main():
             print(f"Processing {symbol} ({i}/{len(symbols)})...", end=" ")
             
             result = analyze_symbol_multi_strategy(
-                symbol, logger, config, strategies, email_service, scorer
+                symbol, logger, config, strategies, email_service, scorer, chart_generator
             )
             if result:
                 results.append(result)

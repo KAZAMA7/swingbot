@@ -406,8 +406,18 @@ scheduling:
 output:
   csv_file: "output/nifty500_signals.csv"
   database: "DBs/nifty500_trading_data.db"
-  charts_enabled: false
+  charts_enabled: true
   output_dir: "output"
+  base_directory: "output"
+  signals_directory: "signals"
+  logs_directory: "logs"
+  charts_directory: "charts"
+
+charts:
+  enabled: true
+  generate_for_signals: true
+  min_score_threshold: 30.0
+  save_all_symbols: false
 
 logging:
   level: "INFO"
