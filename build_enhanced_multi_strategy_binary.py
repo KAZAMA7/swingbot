@@ -36,7 +36,7 @@ def build_binary():
         
         # Add data files
         '--add-data=nifty500_symbols.py:.',
-        '--add-data=config_enhanced_multi_strategy.yaml:.',
+        '--add-data=input:input',
         
         # Add source packages
         '--add-data=src:src',
@@ -128,7 +128,9 @@ def main():
     required_files = [
         "enhanced_multi_strategy_bot.py",
         "nifty500_symbols.py",
-        "config_enhanced_multi_strategy.yaml",
+        "input/config_nifty50.yaml",
+        "input/config_nifty100.yaml", 
+        "input/config_nifty500.yaml",
         "src/strategies/ema_crossover_strategy.py",
         "src/strategies/supertrend_strategy.py",
         "src/strategies/multi_strategy_scorer.py",

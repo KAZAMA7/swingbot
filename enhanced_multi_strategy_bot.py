@@ -22,16 +22,26 @@ from src.strategies.multi_strategy_scorer import MultiStrategyScorer
 from src.notifications.email_service import EmailNotificationService
 
 
-def setup_logging(verbose=False):
+def setup_logging(verbose=False, output_config=None):
     """Setup logging for NIFTY trading bot."""
     level = logging.DEBUG if verbose else logging.INFO
+    
+    # Create output directories if they don't exist
+    if output_config:
+        base_dir = output_config.get('base_directory', 'output')
+        logs_dir = output_config.get('logs_directory', 'logs')
+        log_path = Path(base_dir) / logs_dir
+        log_path.mkdir(parents=True, exist_ok=True)
+        log_file = log_path / 'enhanced_multi_strategy_bot.log'
+    else:
+        log_file = 'enhanced_multi_strategy_bot.log'
     
     logging.basicConfig(
         level=level,
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler('enhanced_multi_strategy_bot.log')
+            logging.FileHandler(log_file)
         ]
     )
     return logging.getLogger(__name__)
@@ -369,12 +379,18 @@ def analyze_symbol_multi_strategy(symbol, logger, config=None, strategies=None,
         return None
 
 
-def load_enhanced_config(config_file=None):
+def load_enhanced_config(config_file=None, size="nifty500"):
     """Load enhanced configuration with strategy settings."""
     if config_file and Path(config_file).exists():
         config_path = config_file
     else:
-        config_path = "config_enhanced_multi_strategy.yaml"
+        # Auto-select config based on size parameter
+        config_mapping = {
+            "nifty50": "input/config_nifty50.yaml",
+            "nifty100": "input/config_nifty100.yaml", 
+            "nifty500": "input/config_nifty500.yaml"
+        }
+        config_path = config_mapping.get(size, "input/config_enhanced_multi_strategy.yaml")
     
     try:
         if Path(config_path).exists():
@@ -434,6 +450,12 @@ def get_default_enhanced_config():
             'password': '',
             'recipients': [],
             'send_on_strong_signals_only': True
+        },
+        'output': {
+            'base_directory': 'output',
+            'signals_directory': 'signals',
+            'logs_directory': 'logs',
+            'charts_directory': 'charts'
         }
     }
 
@@ -496,10 +518,20 @@ def initialize_email_service(config):
         return None
 
 
-def save_enhanced_results(results, filename="enhanced_multi_strategy_signals.csv"):
+def save_enhanced_results(results, filename="enhanced_multi_strategy_signals.csv", output_config=None):
     """Save enhanced results with multi-strategy information."""
     if not results:
         return
+    
+    # Create output directory structure
+    if output_config:
+        base_dir = output_config.get('base_directory', 'output')
+        signals_dir = output_config.get('signals_directory', 'signals')
+        output_path = Path(base_dir) / signals_dir
+        output_path.mkdir(parents=True, exist_ok=True)
+        full_filename = output_path / filename
+    else:
+        full_filename = filename
     
     df = pd.DataFrame(results)
     
@@ -517,8 +549,8 @@ def save_enhanced_results(results, filename="enhanced_multi_strategy_signals.csv
     # Sort by composite score, then legacy score
     df = df.sort_values(['composite_score', 'legacy_score'], ascending=[False, False])
     
-    df.to_csv(filename, index=False)
-    print(f"Enhanced multi-strategy results saved to {filename}")
+    df.to_csv(full_filename, index=False)
+    print(f"Enhanced multi-strategy results saved to {full_filename}")
 
 
 def main():
@@ -539,10 +571,10 @@ def main():
     args = parser.parse_args()
     
     # Load configuration
-    config = load_enhanced_config(args.config)
+    config = load_enhanced_config(args.config, args.size)
     
     global logger
-    logger = setup_logging(args.verbose)
+    logger = setup_logging(args.verbose, config.get('output'))
     
     print("Enhanced Multi-Strategy NIFTY Trading Bot")
     print("=" * 70)
@@ -634,8 +666,9 @@ def main():
     
     # Save results
     if results:
-        output_file = f"enhanced_multi_strategy_{args.size}_signals.csv"
-        save_enhanced_results(results, output_file)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_file = f"enhanced_multi_strategy_{args.size}_signals_{timestamp}.csv"
+        save_enhanced_results(results, output_file, config.get('output'))
         
         print(f"\nEnhanced Multi-Strategy Analysis Complete!")
         print(f"Processed: {len(results)} symbols")
