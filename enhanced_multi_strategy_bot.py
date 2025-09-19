@@ -21,7 +21,6 @@ from src.strategies.supertrend_strategy import SuperTrendStrategy
 from src.strategies.multi_strategy_scorer import MultiStrategyScorer
 from src.notifications.email_service import EmailNotificationService
 from src.visualization.chart_generator import ChartGenerator
-from src.data.database import DatabaseManager
 
 
 def setup_logging(verbose=False, output_config=None):

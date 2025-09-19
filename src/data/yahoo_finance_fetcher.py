@@ -11,8 +11,8 @@ import time
 from typing import Dict, List
 from datetime import datetime, timedelta
 
-from interfaces.data_fetcher import DataFetcherInterface
-from models.data_models import OHLCV
+from src.interfaces.data_fetcher import DataFetcherInterface
+from src.models.data_models import OHLCV
 from models.exceptions import DataFetchError
 
 
