@@ -10,6 +10,7 @@ import argparse
 import sys
 import logging
 from pathlib import Path
+from typing import List
 
 from config.config_manager import ConfigManager
 from data.database import DatabaseManager

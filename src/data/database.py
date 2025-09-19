@@ -11,8 +11,8 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 from contextlib import contextmanager
 
-from ..models.data_models import OHLCV, Signal, IndicatorValue, SignalType
-from ..models.exceptions import DatabaseError
+from src.models.data_models import OHLCV, Signal, IndicatorValue, SignalType
+from src.models.exceptions import DatabaseError
 
 
 class DatabaseManager:
@@ -140,13 +140,18 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 for data in ohlcv_data:
+                    # Ensure timestamp is stored as an ISO formatted string
+                    ts = data.timestamp
+                    if hasattr(ts, 'isoformat'):
+                        ts = ts.isoformat()
+
                     conn.execute("""
                         INSERT OR REPLACE INTO price_data 
                         (symbol, timestamp, open, high, low, close, volume)
                         VALUES (?, ?, ?, ?, ?, ?, ?)
                     """, (
                         data.symbol,
-                        data.timestamp,
+                        ts,
                         data.open,
                         data.high,
                         data.low,
@@ -170,13 +175,18 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 for indicator in indicator_values:
+                    # Ensure timestamp is stored as an ISO formatted string
+                    ts = indicator.timestamp
+                    if hasattr(ts, 'isoformat'):
+                        ts = ts.isoformat()
+
                     conn.execute("""
                         INSERT OR REPLACE INTO indicators 
                         (symbol, timestamp, indicator_name, value, parameters)
                         VALUES (?, ?, ?, ?, ?)
                     """, (
                         indicator.symbol,
-                        indicator.timestamp,
+                        ts,
                         indicator.indicator_name,
                         indicator.value,
                         str(indicator.parameters)
@@ -203,7 +213,7 @@ class DatabaseManager:
                     VALUES (?, ?, ?, ?, ?, ?)
                 """, (
                     signal.symbol,
-                    signal.timestamp,
+                    (signal.timestamp.isoformat() if hasattr(signal.timestamp, 'isoformat') else str(signal.timestamp)),
                     signal.signal_type.value,
                     signal.confidence,
                     str(signal.indicators),

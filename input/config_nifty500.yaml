@@ -4,6 +4,18 @@ data_sources:
     enabled: true
     rate_limit: 3  # Slower rate for large number of symbols
 
+# Data fetching configuration
+data_fetching:
+  max_data_period: "max"  # "max" for inception, or specific period like "10y"
+  # Intraday support: set interval to '60m' for hourly bars (default null = daily)
+  interval: 60m
+  # For intraday use shorter fallback periods (example shown commented):
+  fallback_periods: ["max", "10y", "5y", "2y", "1y", "6mo", "3mo", "1mo"]
+  # If using intraday, reduce min threshold because long history isn't available
+  min_data_threshold: 200  # Minimum records required (adjust for intraday)
+  timeout_per_symbol: 600000   # Timeout for data fetching
+  show_data_summary: true  # Show data range information
+
 # NIFTY 500 stocks (partial list - top performing stocks)
 watchlist:
   # Large Cap
@@ -392,10 +404,20 @@ scheduling:
   market_hours_only: true
 
 output:
-  csv_file: "nifty500_signals.csv"
-  database: "nifty500_trading_data.db"
-  charts_enabled: false
+  csv_file: "output/nifty500_signals.csv"
+  database: "DBs/nifty500_trading_data.db"
+  charts_enabled: true
   output_dir: "output"
+  base_directory: "output"
+  signals_directory: "signals"
+  logs_directory: "logs"
+  charts_directory: "charts"
+
+charts:
+  enabled: true
+  generate_for_signals: true
+  min_score_threshold: 30.0
+  save_all_symbols: false
 
 logging:
   level: "INFO"

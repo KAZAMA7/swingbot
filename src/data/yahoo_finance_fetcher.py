@@ -11,9 +11,9 @@ import time
 from typing import Dict, List
 from datetime import datetime, timedelta
 
-from ..interfaces.data_fetcher import DataFetcherInterface
-from ..models.data_models import OHLCV
-from ..models.exceptions import DataFetchError
+from src.interfaces.data_fetcher import DataFetcherInterface
+from src.models.data_models import OHLCV
+from models.exceptions import DataFetchError
 
 
 class YahooFinanceFetcher(DataFetcherInterface):
@@ -102,38 +102,64 @@ class YahooFinanceFetcher(DataFetcherInterface):
         
         return result
     
-    def fetch_historical_data(self, symbol: str, period: str = "1y") -> pd.DataFrame:
+    def fetch_historical_data(self, symbol: str, period: str = "max", fallback_periods: List[str] = None, interval: str | None = None) -> pd.DataFrame:
         """
-        Fetch historical market data for a symbol.
+        Fetch historical market data for a symbol with fallback periods.
         
         Args:
             symbol: Stock symbol to fetch
-            period: Time period (e.g., "1y", "6mo", "200d")
+            period: Primary time period (e.g., "max", "10y", "1y", "6mo")
+            fallback_periods: List of fallback periods to try if primary fails
             
         Returns:
             DataFrame with OHLCV data indexed by date
             
         Raises:
-            DataFetchError: If data fetching fails
+            DataFetchError: If data fetching fails for all periods
         """
-        try:
-            self._rate_limit_delay()
-            
-            ticker = yf.Ticker(symbol)
-            hist = ticker.history(period=period)
-            
-            if hist.empty:
-                raise DataFetchError(f"No historical data available for {symbol}")
-            
-            # Ensure we have enough data points (at least 200 for technical analysis)
-            if len(hist) < 50:
-                self.logger.warning(f"Limited historical data for {symbol}: {len(hist)} days")
-            
-            self.logger.debug(f"Fetched {len(hist)} days of historical data for {symbol}")
-            return hist
-            
-        except Exception as e:
-            raise DataFetchError(f"Failed to fetch historical data for {symbol}: {e}")
+        if fallback_periods is None:
+            fallback_periods = ["max", "10y", "5y", "2y", "1y", "6mo"]
+        
+        # Ensure primary period is first in the list
+        periods_to_try = [period] + [p for p in fallback_periods if p != period]
+        
+        last_error = None
+        for attempt_period in periods_to_try:
+            try:
+                self._rate_limit_delay()
+                
+                ticker = yf.Ticker(symbol)
+                self.logger.debug(f"Attempting to fetch {attempt_period} data for {symbol} (interval={interval})")
+                # If an interval is provided, request intraday data where supported
+                if interval:
+                    hist = ticker.history(period=attempt_period, interval=interval)
+                else:
+                    hist = ticker.history(period=attempt_period)
+                
+                if not hist.empty and len(hist) >= 50:  # Minimum threshold for analysis
+                    # Log data range information
+                    start_date = hist.index.min().strftime('%Y-%m-%d')
+                    end_date = hist.index.max().strftime('%Y-%m-%d')
+                    years_span = (hist.index.max() - hist.index.min()).days / 365.25
+                    
+                    self.logger.debug(f"Successfully fetched {len(hist)} days of data for {symbol} "
+                                    f"from {start_date} to {end_date} ({years_span:.1f} years) [Period: {attempt_period}]")
+                    
+                    # Warn if data span is limited
+                    if years_span < 1.0:
+                        self.logger.warning(f"Limited historical data for {symbol}: {years_span:.1f} years")
+                    
+                    return hist
+                else:
+                    self.logger.debug(f"Insufficient data with {attempt_period} for {symbol}: {len(hist) if not hist.empty else 0} days")
+                    
+            except Exception as e:
+                last_error = e
+                self.logger.debug(f"Failed to fetch {attempt_period} data for {symbol}: {e}")
+                continue
+        
+        # If we get here, all periods failed
+        raise DataFetchError(f"Failed to fetch historical data for {symbol} with any period. Last error: {last_error}")
     
     def validate_symbol(self, symbol: str) -> bool:
         """
@@ -156,6 +182,7 @@ class YahooFinanceFetcher(DataFetcherInterface):
                 return False
             
             # Try to get some recent data
+            # Use a short intraday period to validate both daily and intraday symbols
             hist = ticker.history(period="5d")
             return not hist.empty
             
@@ -201,7 +228,7 @@ class YahooFinanceFetcher(DataFetcherInterface):
             self.logger.error(f"Failed to get symbol info for {symbol}: {e}")
             return {'symbol': symbol, 'name': 'Unknown'}
     
-    def fetch_ohlcv_list(self, symbol: str, period: str = "1y") -> List[OHLCV]:
+    def fetch_ohlcv_list(self, symbol: str, period: str = "max", interval: str | None = None) -> List[OHLCV]:
         """
         Fetch historical data as list of OHLCV objects.
         
@@ -213,7 +240,7 @@ class YahooFinanceFetcher(DataFetcherInterface):
             List of OHLCV objects
         """
         try:
-            hist_df = self.fetch_historical_data(symbol, period)
+            hist_df = self.fetch_historical_data(symbol, period, interval=interval)
             
             ohlcv_list = []
             for timestamp, row in hist_df.iterrows():

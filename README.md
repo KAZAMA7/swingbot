@@ -1,49 +1,79 @@
-# Stock Trading Bot
+# Enhanced NIFTY Stock Trading Bot
 
-A comprehensive cross-platform stock swing trading bot that automatically fetches global equity data, performs technical analysis using RSI, Bollinger Bands, and EMA indicators, and generates actionable buy/sell signals with room for improvement and extensibility.
+A comprehensive cross-platform stock trading bot specifically optimized for Indian NIFTY stocks that automatically fetches **maximum historical data from inception**, performs advanced multi-indicator technical analysis, and generates actionable buy/sell signals with enhanced data quality reporting.
 
-![Trading Bot Demo](https://img.shields.io/badge/Status-Production%20Ready-green)
+![Trading Bot Demo](https://img.shields.io/badge/Status-Enhanced%20Production%20Ready-green)
 ![Python Version](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Mac%20%7C%20Linux-lightgrey)
+![Market](https://img.shields.io/badge/Market-Indian%20NIFTY-orange)
 
-## 🚀 Features
+## 🚀 Enhanced Features
+
+### 🆕 Latest Enhancements
+- **📈 Maximum Historical Data**: Fetches stock data from inception using "max" period
+- **📊 Enhanced Data Reporting**: Shows actual data ranges, quality indicators, and period usage statistics
+- **⚙️ Fixed Binary CLI**: All command line arguments now work properly in compiled binaries
+- **🔧 Advanced Configuration**: Configurable data fetching with fallback periods and validation
+- **🎯 Multi-Indicator Analysis**: Multiple RSI (14,21,50) and EMA (9,21,50,200) periods for comprehensive analysis
 
 ### Core Functionality
-- **📊 Technical Analysis**: RSI, Bollinger Bands, and EMA indicators
-- **🎯 Signal Generation**: Configurable swing trading buy/sell signals
-- **📈 Data Fetching**: Yahoo Finance API integration with rate limiting
-- **💾 Data Storage**: SQLite database for historical data and signals
-- **⏰ Automated Scheduling**: Periodic updates with market hours support
-- **📋 Multiple Output Formats**: CSV files, database, and visual charts
+- **📊 Advanced Technical Analysis**: Multiple RSI, EMA, Bollinger Bands, and MACD indicators
+- **🎯 Enhanced Signal Generation**: Multi-factor scoring system with configurable thresholds
+- **📈 Maximum Data Fetching**: Yahoo Finance API with "max" period for complete historical data
+- **💾 Data Quality Management**: Comprehensive data validation and quality reporting
+- **⏰ Indian Market Hours**: Optimized for IST market hours (9:15 AM - 3:30 PM)
+- **📋 Enhanced Output**: CSV files with data quality indicators and range information
 
 ### Advanced Features
 - **🔧 Extensible Architecture**: Plugin-based system for new indicators and strategies
-- **📱 Cross-Platform**: Single executable for Windows, Mac, and Linux
-- **🎨 Visualization**: matplotlib-based technical analysis charts
-- **⚙️ Configuration Management**: YAML-based configuration with validation
-- **🧪 Comprehensive Testing**: Full test suite with performance benchmarks
-- **📝 Detailed Logging**: Structured logging with rotation and retention
+- **📱 Cross-Platform Binaries**: Single executable with proper CLI support for Windows, Mac, and Linux
+- **🎨 Data Visualization**: Enhanced charts with historical data range information
+- **⚙️ Advanced Configuration**: YAML-based configuration with data fetching validation
+- **🧪 Comprehensive Testing**: Full test suite including enhanced data fetching tests
+- **📝 Enhanced Logging**: Detailed logging with data range and quality information
 
 ## 📦 Quick Start
 
-### Option 1: Simple Trading Bot (Recommended for Testing)
+### Option 1: Enhanced NIFTY Trading Bot (Recommended)
 
 ```bash
 # Install dependencies
 pip install yfinance pandas numpy matplotlib pyyaml
 
-# Run the simple version
-python simple_trading_bot.py
+# Test with maximum historical data
+python enhanced_nifty_trading_bot.py --test --verbose
+
+# Analyze NIFTY 50 with complete historical data
+python enhanced_nifty_trading_bot.py --size nifty50
+
+# Analyze NIFTY 500 (comprehensive analysis)
+python enhanced_nifty_trading_bot.py --size nifty500
 ```
 
-### Option 2: Full System
+### Option 2: Binary Version (No Python Required)
+
+```bash
+# Build the enhanced binary
+python build_nifty_binary.py
+
+# Run the binary with maximum historical data
+./dist/enhanced-nifty-trading-bot-*.exe --size nifty50
+
+# Test binary functionality
+./dist/enhanced-nifty-trading-bot-*.exe --test --verbose
+```
+
+### Option 3: Full System Development
 
 ```bash
 # Install all dependencies
 pip install -r requirements.txt
 
-# Test the system
-python test_bot.py
+# Run comprehensive tests including enhanced data fetching
+python -m pytest tests/test_enhanced_data_fetching.py -v
+
+# Test CLI arguments
+python test_cli_args.py
 
 # Run the full trading bot
 python src/main.py --test

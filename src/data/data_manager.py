@@ -11,8 +11,8 @@ import pandas as pd
 
 from .yahoo_finance_fetcher import YahooFinanceFetcher
 from .database import DatabaseManager
-from ..models.data_models import OHLCV
-from ..models.exceptions import DataFetchError, DatabaseError
+from models.data_models import OHLCV
+from models.exceptions import DataFetchError, DatabaseError
 
 
 class DataManager:
@@ -33,6 +33,8 @@ class DataManager:
         # Initialize data fetcher
         rate_limit = self.config.get('data_sources', {}).get('yahoo_finance', {}).get('rate_limit', 5)
         self.data_fetcher = YahooFinanceFetcher(rate_limit)
+        # Optional intraday interval (e.g., '60m' for hourly). If None, daily data is used.
+        self.interval = self.config.get('data_fetching', {}).get('interval', None)
         
         self.logger.info("Data manager initialized")
     
@@ -69,31 +71,51 @@ class DataManager:
             self.logger.error(f"Failed to initialize data for {symbol}: {e}")
             raise DataFetchError(f"Data initialization failed for {symbol}: {e}")
     
-    def _download_complete_history(self, symbol: str) -> pd.DataFrame:
+    def _download_complete_history(self, symbol: str, config: dict = None) -> pd.DataFrame:
         """
-        Download complete historical data for a symbol.
+        Download complete historical data for a symbol with enhanced configuration support.
         
         Yahoo Finance provides:
-        - Daily data: Up to 10+ years
+        - Daily data: From inception with "max" period
         - Intraday data: Limited to recent periods
         
         Args:
             symbol: Stock symbol
+            config: Configuration dictionary with data fetching parameters
             
         Returns:
             DataFrame with complete historical data
         """
         try:
-            # Try different periods to get maximum data
-            periods_to_try = ["max", "10y", "5y", "2y", "1y"]
+            # Get configuration parameters
+            if config and 'data_fetching' in config:
+                data_config = config['data_fetching']
+                periods_to_try = data_config.get('fallback_periods', ["max", "10y", "5y", "2y", "1y", "6mo"])
+                min_threshold = data_config.get('min_data_threshold', 200)
+            else:
+                periods_to_try = ["max", "10y", "5y", "2y", "1y", "6mo"]
+                min_threshold = 200
             
+            period_used = None
             for period in periods_to_try:
                 try:
                     self.logger.debug(f"Trying to fetch {period} data for {symbol}")
-                    hist_data = self.data_fetcher.fetch_historical_data(symbol, period)
+                    hist_data = self.data_fetcher.fetch_historical_data(symbol, period, interval=self.interval)
                     
-                    if not hist_data.empty:
-                        self.logger.info(f"Successfully fetched {len(hist_data)} days of data for {symbol} (period: {period})")
+                    if not hist_data.empty and len(hist_data) >= min_threshold:
+                        period_used = period
+                        
+                        # Enhanced data summary
+                        start_date = hist_data.index.min().strftime('%Y-%m-%d')
+                        end_date = hist_data.index.max().strftime('%Y-%m-%d')
+                        years_span = (hist_data.index.max() - hist_data.index.min()).days / 365.25
+                        
+                        self.logger.info(f"Successfully fetched {len(hist_data)} days of data for {symbol} "
+                                       f"from {start_date} to {end_date} ({years_span:.1f} years) [Period: {period}]")
+                        
+                        # Warn if limited data
+                        if years_span < 1.0:
+                            self.logger.warning(f"Limited historical data for {symbol}: {years_span:.1f} years")
                         
                         # Convert to OHLCV objects and store
                         ohlcv_list = self._dataframe_to_ohlcv_list(symbol, hist_data)
@@ -103,12 +125,14 @@ class DataManager:
                             self.logger.info(f"Stored {len(ohlcv_list)} records for {symbol}")
                         
                         return hist_data
+                    else:
+                        self.logger.debug(f"Insufficient data with {period} for {symbol}: {len(hist_data) if not hist_data.empty else 0} days")
                         
                 except Exception as e:
                     self.logger.warning(f"Failed to fetch {period} data for {symbol}: {e}")
                     continue
             
-            raise DataFetchError(f"Could not fetch any historical data for {symbol}")
+            raise DataFetchError(f"Could not fetch sufficient historical data for {symbol} (need {min_threshold}+ days)")
             
         except Exception as e:
             raise DataFetchError(f"Complete history download failed for {symbol}: {e}")
@@ -127,9 +151,21 @@ class DataManager:
         try:
             # Get the latest date in existing data
             latest_date = existing_data.index.max()
-            days_since_update = (datetime.now() - latest_date).days
-            
-            self.logger.debug(f"Latest data for {symbol}: {latest_date}, {days_since_update} days ago")
+
+            # Normalize latest_date and now to UTC-aware pandas Timestamps to avoid
+            # errors when subtracting tz-aware and tz-naive datetimes.
+            latest_ts = pd.Timestamp(latest_date)
+
+            # If latest_ts is naive, localize it to UTC. If it's tz-aware, convert to UTC.
+            if latest_ts.tz is None:
+                latest_ts_utc = latest_ts.tz_localize('UTC')
+            else:
+                latest_ts_utc = latest_ts.tz_convert('UTC')
+
+            now_utc = pd.Timestamp.now(tz='UTC')
+            days_since_update = int((now_utc - latest_ts_utc).days)
+
+            self.logger.debug(f"Latest data for {symbol}: {latest_ts_utc}, {days_since_update} days ago")
             
             if days_since_update <= 1:
                 self.logger.info(f"Data for {symbol} is up to date")
@@ -140,7 +176,7 @@ class DataManager:
             fetch_period = f"{min(days_since_update + 5, 30)}d"
             
             try:
-                new_data = self.data_fetcher.fetch_historical_data(symbol, fetch_period)
+                new_data = self.data_fetcher.fetch_historical_data(symbol, fetch_period, interval=self.interval)
                 
                 if new_data.empty:
                     self.logger.warning(f"No new data available for {symbol}")

@@ -123,3 +123,4 @@ build/
 dist/
 *.exe
 *.spec
+.kiro

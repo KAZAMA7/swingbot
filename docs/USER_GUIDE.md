@@ -40,6 +40,36 @@ For advanced features and customization:
    python src/main.py --test
    ```
 
+  ### Packaging and Binary Usage
+
+  If you prefer a single-file binary (PyInstaller-style) we've included build scripts to produce a standalone executable.
+
+  1. Build the binary (Linux/macOS):
+  ```bash
+  ./build.sh
+  # or
+  python3 build_binary.py
+  ```
+
+  2. Run the packaged binary (examples):
+  ```bash
+  # Show help
+  ./dist/trading-bot --help
+
+  # Run a quick self-test
+  ./dist/trading-bot --test
+
+  # Check data (validate symbol lists and DB initialization)
+  ./dist/trading-bot --check-data --config config_nifty500.yaml
+
+  # Run a manual update using a config
+  ./dist/trading-bot --manual --config config_nifty50.yaml
+  ```
+
+  Notes:
+  - The build may emit non-fatal hidden-import warnings (e.g., pkg_resources.py2_warn). These do not usually affect runtime, but you can add hidden imports to `trading-bot.spec` to silence them.
+  - The packaged binary uses the same configuration files and output directories as the source-run version.
+
 ## Understanding the Output
 
 ### Console Output
@@ -181,6 +211,35 @@ python src/main.py  # Runs continuously with scheduling
    ```bash
    python simple_trading_bot.py
    ```
+
+  ### Repairing Symbol Lists (NSE -> BSE fallback)
+
+  If you see "No data available for symbol" or repeated initialization errors for a large watchlist (NIFTY 500), use the included repair script to attempt a BSE fallback (.BO) for failing `.NS` symbols and remove irrecoverable tickers.
+
+  Run the script like this:
+
+  ```bash
+  # Repair the NIFTY 500 list (default)
+  python3 scripts/repair_nifty500_symbols.py
+
+  # Repair only the NIFTY 50 list
+  python3 scripts/repair_nifty500_symbols.py --target nifty50
+
+  # Repair the NIFTY 100 list
+  python3 scripts/repair_nifty500_symbols.py --target nifty100
+  ```
+
+  What the script does:
+  - Validates each symbol (tries `.NS` on Yahoo Finance)
+  - If `.NS` fails and the symbol ends with `.NS`, it tries the `.BO` counterpart
+  - If `.BO` succeeds, the script replaces the `.NS` symbol with `.BO` in `nifty500_symbols.py`
+  - If both fail, the symbol is removed from the target list
+
+  Artifacts produced:
+  - Report: `output/failed_nifty500_report.csv` (or `failed_nifty50_report.csv` / `failed_nifty100_report.csv` depending on the `--target` used). This CSV lists each symbol, the action taken (`ok`, `replaced`, or `removed`), and replacement symbol if any.
+  - Backup: `nifty500_symbols.py.bak` — the script creates a timestamp-free backup of the original `nifty500_symbols.py` before editing.
+
+  Recommendation: Review the CSV report after the script runs. If a removed symbol has a known replacement that the script couldn't detect, you can add it manually to `nifty500_symbols.py`.
 
 ### Scenario 4: Different Time Frames
 

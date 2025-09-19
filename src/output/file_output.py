@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import List, Dict, Any
 from datetime import datetime
 
-from ..models.data_models import Signal, OHLCV, IndicatorValue
-from ..models.exceptions import TradingBotError
+from src.models.data_models import Signal, OHLCV, IndicatorValue
+from src.models.exceptions import TradingBotError
 
 
 class FileOutputHandler:

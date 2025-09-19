@@ -1,0 +1,101 @@
+# Backtesting Configuration for Enhanced Multi-Strategy NIFTY Trading Bot
+
+# Backtest Parameters
+backtest:
+  initial_capital: 1000000.0        # 10 Lakh INR starting capital
+  position_size_percent: 5.0        # 5% of capital per position
+  max_positions: 20                 # Maximum concurrent positions
+  commission_percent: 0.1           # 0.1% commission per trade
+  slippage_percent: 0.05            # 0.05% slippage
+  
+  # Risk Management
+  stop_loss_percent: 5.0            # 5% stop loss
+  take_profit_percent: 15.0         # 15% take profit
+  max_holding_days: 30              # Maximum holding period
+  max_portfolio_drawdown: 20.0      # 20% maximum drawdown
+  max_daily_loss: 2.0               # 2% maximum daily loss
+  
+  # Signal Filtering
+  min_signal_confidence: 0.3        # Minimum signal confidence (30%)
+  min_composite_score: 30.0         # Minimum composite score
+  
+  # Trading Rules
+  allow_short_selling: false        # Only long positions
+  rebalance_frequency: "daily"      # daily, weekly, monthly
+
+# Data Configuration
+data:
+  symbols_limit: 50                 # Limit symbols for faster backtesting
+  start_date: "2020-01-01"         # Backtest start date
+  end_date: null                    # null = current date
+  min_data_threshold: 500           # Minimum data points required
+  
+# Strategy Configuration
+strategies:
+  ema_crossover:
+    enabled: true
+    short_period: 50
+    long_period: 200
+    approach_threshold: 0.02        # 2% approach threshold
+    weight: 1.5
+    
+  supertrend:
+    enabled: true
+    atr_period: 10
+    multiplier: 3.0
+    weight: 1.2
+    
+  legacy:
+    enabled: true
+    weight: 1.0
+
+# Multi-Strategy Scoring
+multi_strategy:
+  enabled: true
+  strong_buy_threshold: 60.0
+  buy_threshold: 30.0
+  sell_threshold: -30.0
+  strong_sell_threshold: -60.0
+
+# Parameter Optimization Ranges (for optimization mode)
+optimization:
+  enabled: false
+  
+  # EMA Crossover parameters to test
+  ema_crossover:
+    short_period: [20, 50, 100]
+    long_period: [100, 200, 300]
+    approach_threshold: [0.01, 0.02, 0.05]
+    
+  # SuperTrend parameters to test
+  supertrend:
+    atr_period: [7, 10, 14, 21]
+    multiplier: [2.0, 2.5, 3.0, 3.5, 4.0]
+    
+  # Risk management parameters to test
+  risk_management:
+    stop_loss_percent: [3.0, 5.0, 8.0, 10.0]
+    take_profit_percent: [10.0, 15.0, 20.0, 25.0]
+    position_size_percent: [2.0, 3.0, 5.0, 8.0]
+    max_holding_days: [15, 30, 45, 60]
+
+# Output Configuration
+output:
+  base_directory: "output"
+  backtests_directory: "backtests"
+  charts_directory: "charts"
+  reports_directory: "reports"
+  
+  # What to save
+  save_trades: true
+  save_equity_curve: true
+  save_performance_charts: true
+  save_detailed_report: true
+
+# Reporting Configuration
+reporting:
+  generate_html_report: true
+  include_trade_details: true
+  include_performance_charts: true
+  include_risk_metrics: true
+  benchmark_symbol: "^NSEI"         # NIFTY 50 as benchmark

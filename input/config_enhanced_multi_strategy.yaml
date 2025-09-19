@@ -1,0 +1,75 @@
+# Enhanced Multi-Strategy NIFTY Trading Bot Configuration
+
+# Data fetching configuration
+data_fetching:
+  max_data_period: "max"  # "max" for inception, or specific period like "10y"
+  fallback_periods: ["max", "10y", "5y", "2y", "1y", "6mo", "3mo", "1mo"]
+  min_data_threshold: 200  # Minimum records required for analysis
+  timeout_per_symbol: 60   # Timeout for data fetching per symbol
+  show_data_summary: true  # Show data range information
+
+# Trading strategies configuration
+strategies:
+  # EMA Crossover Strategy (50 EMA vs 200 EMA)
+  ema_crossover:
+    enabled: true
+    short_period: 50      # Short EMA period
+    long_period: 200      # Long EMA period
+    approach_threshold: 0.02  # 2% threshold for "approaching" signals
+    weight: 1.5           # Strategy weight in composite scoring
+
+  # SuperTrend Strategy (ATR-based trend following)
+  supertrend:
+    enabled: true
+    atr_period: 10        # ATR calculation period
+    multiplier: 3.0       # SuperTrend multiplier
+    weight: 1.2           # Strategy weight in composite scoring
+
+  # Legacy Multi-Indicator Strategy (RSI + EMA + BB + MACD)
+  legacy:
+    enabled: true
+    weight: 1.0           # Strategy weight in composite scoring
+
+# Multi-strategy scoring configuration
+multi_strategy:
+  enabled: true
+  strong_buy_threshold: 60.0    # Composite score threshold for STRONG BUY
+  buy_threshold: 30.0           # Composite score threshold for BUY
+  sell_threshold: -30.0         # Composite score threshold for SELL
+  strong_sell_threshold: -60.0  # Composite score threshold for STRONG SELL
+  equal_weighting: false        # Use equal weights if true, ignore individual weights
+
+# Email notification configuration
+email_notifications:
+  enabled: false                # Set to true to enable email notifications
+  smtp_host: "smtp.gmail.com"   # SMTP server host
+  smtp_port: 587                # SMTP server port
+  use_tls: true                 # Use TLS encryption
+  username: ""                  # Your email address
+  password: ""                  # Your email password or app password
+  recipients:                   # List of email addresses to notify
+    - "trader1@example.com"
+    - "trader2@example.com"
+  send_on_strong_signals_only: true  # Only send emails for high-confidence signals
+
+# Legacy indicator configuration (for backward compatibility)
+indicators:
+  rsi:
+    periods: [14, 21, 50]       # Multiple RSI periods
+  ema:
+    periods: [9, 21, 50, 200]   # Multiple EMA periods
+  bollinger_bands:
+    period: 20                  # Bollinger Bands period
+    std_dev: 2                  # Standard deviation multiplier
+  macd:
+    fast: 12                    # MACD fast EMA
+    slow: 26                    # MACD slow EMA
+    signal: 9                   # MACD signal line EMA
+
+# Watchlist (used by other scripts, not this one)
+watchlist:
+  - "RELIANCE.NS"
+  - "TCS.NS"
+  - "HDFCBANK.NS"
+  - "INFY.NS"
+  - "HINDUNILVR.NS"
